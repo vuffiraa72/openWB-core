@@ -5,6 +5,7 @@ import copy
 
 from control import data
 from control import loadmanagement
+from control.chargepoint import Chargepoint
 from helpermodules.log import MainLogger
 from helpermodules.pub import Pub
 
@@ -152,22 +153,26 @@ class Algorithm:
                 # wird und nicht der maximal nutzbare, der ja eventuell gar nicht voll ausgenutzt wird, sodass die
                 # Reduzierung wirkungslos wäre. Wenn set current bereits reduziert wurde, darf es nicht wieder
                 # hochgesetzt werden. EVs, die nicht laden, sollen nicht berücksichtigt werden.
-                for cp in data.data.cp_data:
+                for cp in data.data.cp_data.values():
                     try:
-                        if "cp" in cp:
-                            max_get_current = max(data.data.cp_data[cp].data["get"]["currents"])
-                            if (data.data.cp_data[cp].data["set"]["current"] > max_get_current
-                                > data.data.cp_data[cp].data["set"][
+                        if isinstance(cp, Chargepoint):
+                            max_get_current = max(cp.data["get"]["currents"])
+                            if (cp.data["set"]["current"] > max_get_current
+                                > cp.data["set"][
                                     "charging_ev_data"].ev_template.data["nominal_difference"]):
                                 # Manche EVs laden mit weniger Strom als der Min-Strom.
-                                if (max_get_current > data.data.cp_data[cp].data["set"][
-                                        "charging_ev_data"].ev_template.data["min_current"]):
-                                    data.data.cp_data[cp].data["set"]["current"] = max_get_current
+                                if cp.data["get"]["phases_in_use"] == 1:
+                                    min_current = cp.data["set"][
+                                        "charging_ev_data"].ev_template.data["min_current_one_phase"]
                                 else:
-                                    data.data.cp_data[cp].data["set"]["current"] = data.data.cp_data[cp].data["set"][
-                                        "charging_ev_data"].ev_template.data["min_current"]
+                                    min_current = cp.data["set"][
+                                        "charging_ev_data"].ev_template.data["min_current_multi_phases"]
+                                if (max_get_current > min_current):
+                                    cp.data["set"]["current"] = max_get_current
+                                else:
+                                    cp.data["set"]["current"] = min_current
                     except Exception:
-                        MainLogger().exception("Fehler im Algorithmus-Modul für Ladepunkt"+cp)
+                        MainLogger().exception(f"Fehler im Algorithmus-Modul für Ladepunkt {cp.cp_num}")
                 # Begrenzung der Schleifendurchläufe: Im ersten Durchlauf wird versucht, die Überlast durch Reduktion
                 # zu eliminieren, im zweiten durch Abschalten. Daher die zweifache Anzahl von Zählern als Durchläufe.
                 for b in range(0, len(data.data.counter_data)*2):
@@ -340,8 +345,13 @@ class Algorithm:
                             # Dies ist der aktuell betrachtete Ladepunkt. Es wurde noch kein Strom gesetzt.
                             considered_current = ev_data.data["control_parameter"][
                                 "required_current"]
-                        adaptable_current = considered_current - \
-                            ev_data.ev_template.data["min_current"]
+                        if cp.data["get"]["phases_in_use"] == 1:
+                            min_current = cp.data["set"][
+                                "charging_ev_data"].ev_template.data["min_current_one_phase"]
+                        else:
+                            min_current = cp.data["set"][
+                                "charging_ev_data"].ev_template.data["min_current_multi_phases"]
+                        adaptable_current = considered_current - min_current
                         # Der Strom kann nicht weiter reduziert werden.
                         if adaptable_current <= 0:
                             # Ladung darf gestoppt werden.

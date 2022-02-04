@@ -426,7 +426,8 @@ class SetData:
                         msg, int, [(0, float("inf"))], pub_json=True)
                 elif "/max_phases" in msg.topic:
                     self._validate_value(msg, int, [(1, 3)], pub_json=True)
-                elif "/min_current" in msg.topic:
+                elif ("/min_current_one_phase" in msg.topic or
+                        "/min_current_multi_phases" in msg.topic):
                     self._validate_value(msg, int, [(6, 32)], pub_json=True)
                 elif ("/max_current_one_phase" in msg.topic or
                         "/max_current_multi_phases" in msg.topic):

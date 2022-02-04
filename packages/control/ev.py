@@ -251,7 +251,10 @@ class Ev:
                 # EV soll/darf nicht laden
                 if required_current != 0:
                     if not pv:
-                        min_current = self.ev_template.data["min_current"]
+                        if phases == 1:
+                            min_current = self.ev_template.data["min_current_one_phase"]
+                        else:
+                            min_current = self.ev_template.data["min_current_multi_phases"]
                     else:
                         min_current = self.data["control_parameter"]["required_current"]
                     if required_current < min_current:
@@ -428,17 +431,18 @@ class Ev:
 
 def get_ev_template_default() -> dict:
     return {
-        "name": "Standard-Fahrzeug-Vorlage",
+        "average_consump": 17,
+        "battery_capacity": 82,
+        "control_pilot_interruption": False,
+        "min_current_multi_phases": 6,
+        "min_current_one_phase": 6,
         "max_current_multi_phases": 16,
+        "max_current_one_phase": 32,
         "max_phases": 3,
+        "name": "Standard-Fahrzeug-Vorlage",
+        "nominal_difference": 2,
         "phase_switch_pause": 2,
         "prevent_switch_stop": False,
-        "control_pilot_interruption": False,
-        "average_consump": 17,
-        "min_current": 6,
-        "max_current_one_phase": 32,
-        "battery_capacity": 82,
-        "nominal_difference": 2,
         "request_interval_charging": 5,
         "request_interval_not_charging": 720,
         "request_only_plugged": False
