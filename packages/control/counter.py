@@ -249,7 +249,7 @@ class Counter:
         elif control_range_state == ControlRangeState.ABOVE:
             range_offset = - abs(control_range_center)
         else:
-            range_offset = 0
+            range_offset = control_range_center
         log.debug(f"Anpassen des Regelbereichs {range_offset}W")
         return range_offset
 
