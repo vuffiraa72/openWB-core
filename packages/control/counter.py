@@ -244,12 +244,11 @@ class Counter:
         control_range_high = data.data.general_data.data.chargemode_config.pv_charging.control_range[1]
         control_range_center = control_range_high - (control_range_high - control_range_low) / 2
         control_range_state = self.get_control_range_state(0)
+        range_offset = control_range_center
         if control_range_state == ControlRangeState.BELOW:
-            range_offset = abs(control_range_center)
+            range_offset += abs(control_range_center)
         elif control_range_state == ControlRangeState.ABOVE:
-            range_offset = - abs(control_range_center)
-        else:
-            range_offset = control_range_center
+            range_offset -= abs(control_range_center)
         log.debug(f"Anpassen des Regelbereichs {range_offset}W")
         return range_offset
 
