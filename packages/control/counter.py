@@ -245,10 +245,13 @@ class Counter:
         control_range_center = control_range_high - (control_range_high - control_range_low) / 2
         control_range_state = self.get_control_range_state(0)
         range_offset = control_range_center
+        log.error(f"range offset {range_offset}W")
         if control_range_state == ControlRangeState.BELOW:
             range_offset += abs(control_range_center)
+            log.error(f"below range {range_offset}W")
         elif control_range_state == ControlRangeState.ABOVE:
             range_offset -= abs(control_range_center)
+            log.error(f"above range {range_offset}W")
         # log.debug(f"Anpassen des Regelbereichs {range_offset}W")
         log.error(f"Anpassen des Regelbereichs {range_offset}W")
         return range_offset
