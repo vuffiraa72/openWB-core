@@ -249,7 +249,8 @@ class Counter:
             range_offset += abs(control_range_center)
         elif control_range_state == ControlRangeState.ABOVE:
             range_offset -= abs(control_range_center)
-        log.debug(f"Anpassen des Regelbereichs {range_offset}W")
+        # log.debug(f"Anpassen des Regelbereichs {range_offset}W")
+        log.error(f"Anpassen des Regelbereichs {range_offset}W")
         return range_offset
 
     def get_usable_surplus(self, feed_in_yield: float) -> float:
