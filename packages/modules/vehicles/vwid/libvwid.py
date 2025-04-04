@@ -180,17 +180,12 @@ class vwid:
             'redirectUri': "myskoda://redirect/login/",
             'verifier': code_verifier
         }
-        self.log.error("Payload: %s", payload)
         response = await self.session.post(API_BASE + '/v1/authentication/exchange-authorization-code', params=params, json=payload)
         if response.status >= 400:
             self.log.error("Login: Non-2xx response")
             # Non 2xx response, failed
-            self.log.error("Response: %s", response)
-            self.log.error("Status: %s", response.status)
             return False
         self.tokens = await response.json()
-
-        self.log.error("Tokens: %s", self.tokens)
 
         # Update header with final token
         self.headers['Authorization'] = 'Bearer %s' % self.tokens["accessToken"]
@@ -202,10 +197,15 @@ class vwid:
         if not self.headers:
             return False
 
+        params = {
+            'tokenType': 'CONNECT'
+        }
         # Use the refresh token
-        self.headers['Authorization'] = 'Bearer %s' % self.tokens["refreshToken"]
+        payload = {
+            'token': self.tokens["accessToken"]
+        }
 
-        response = await self.session.get(LOGIN_BASE + '/refresh/v1', headers=self.headers)
+        response = await self.session.get(API_BASE + 'v1/authentication/refresh-token', params=params, json=payload)
         if response.status >= 400:
             return False
         self.tokens = await response.json()
@@ -216,7 +216,7 @@ class vwid:
         return True
 
     async def get_status(self):
-        status_url = f"{API_BASE}/vehicles/{self.vin}/selectivestatus?jobs={self.jobs_string}"
+        status_url = f"{API_BASE}/v2/vehicle-status/{self.vin}/driving-range"
         response = await self.session.get(status_url, headers=self.headers)
 
         # If first attempt fails, try to refresh tokens
