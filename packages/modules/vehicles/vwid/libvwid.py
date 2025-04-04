@@ -8,6 +8,7 @@ import secrets
 import logging
 import json
 import uuid
+import base64
 from hashlib import sha256
 
 from helpermodules.utils.error_handling import ImportErrorContext
@@ -89,10 +90,10 @@ class vwid:
     def get_code_challenge(self):
         code_verifier = secrets.token_urlsafe(64).replace('+', '-').replace('/', '_').replace('=', '')
         code_verifier = 'T3dndUt0dUFmbWZuWTZhSjVabzJLS2R6T1dNTDJGWWdhQ2FlWkx1OFlabTdnY3QzemVCRWdUdHJUWVVOUUdVdg'
-        code_challenge = sha256(code_verifier.encode('utf-8')).hexdigest()
+        code_challenge = sha256(code_verifier).digest()
         self.log.error("Code challenge: %s", code_challenge)
-        # encode challenge base64
-        code_challenge = code_challenge.encode('utf-8').replace('+', '-').replace('/', '_').replace('=', '')
+        code_challenge = base64.b64encode(code_challenge).decode('utf-8')
+        code_challenge = code_challenge.replace('+', '-').replace('/', '_').replace('=', '')
         self.log.error("Code challenge: %s", code_challenge)
         return (code_verifier, code_challenge)
 
