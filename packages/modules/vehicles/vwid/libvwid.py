@@ -92,7 +92,7 @@ class vwid:
         code_verifier = 'T3dndUt0dUFmbWZuWTZhSjVabzJLS2R6T1dNTDJGWWdhQ2FlWkx1OFlabTdnY3QzemVCRWdUdHJUWVVOUUdVdg'
         code_challenge = base64.b64encode(hashlib.sha256(code_verifier.encode('utf-8')).digest())
         self.log.error("Code challenge: %s", code_challenge)
-        code_challenge = code_challenge.replace('+', '-').replace('/', '_').replace('=', '')
+        code_challenge = code_challenge.decode('utf-8').replace('+', '-').replace('/', '_').replace('=', '')
         self.log.error("Code challenge: %s", code_challenge)
         return (code_verifier, code_challenge)
 
