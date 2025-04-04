@@ -7,15 +7,18 @@
 import secrets
 import logging
 import json
+import uuid
+from hashlib import sha256
 
 from helpermodules.utils.error_handling import ImportErrorContext
 with ImportErrorContext():
     import lxml.html
 
 # Constants
-LOGIN_BASE = "https://emea.bff.cariad.digital/user-login/v1"
+LOGIN_BASE = "https://identity.vwgroup.io/oidc/v1"
 LOGIN_HANDLER_BASE = "https://identity.vwgroup.io"
 API_BASE = "https://mysmob.api.connect.skoda-auto.cz/api/v2"
+CLIENT_ID = "7f045eee-7003-4379-9968-9355ed2adb06@apps_vw-dilab_com"
 
 
 class vwid:
@@ -83,15 +86,29 @@ class vwid:
     def set_jobs(self, jobs):
         self.jobs_string = ','.join(jobs)
 
+    def get_code_challenge(self):
+        code_verifier = secrets.token_urlsafe(64).replace('+', '-').replace('/', '_').replace('=', '')
+        code_challenge = sha256(code_verifier.encode('utf-8')).hexdigest()
+        return (code_verifier, code_challenge)
+
     async def connect(self, username, password):
         self.set_credentials(username, password)
         return (await self.reconnect())
 
     async def reconnect(self):
+        # Get code challenge and verifier
+        code_verifier, code_challenge = self.get_code_challenge()
+
         # Get authorize page
         payload = {
+            'client_id': CLIENT_ID,
+            'scope': 'address badge birthdate cars driversLicense dealers email mileage mbb nationalIdentifier openid phone profession profile vin',
+            'response_type': 'code id_token',
             'nonce': secrets.token_urlsafe(12),
-            'redirect_uri': 'weconnect://authenticated'
+            'redirect_uri': 'myskoda://redirect/login/',
+            'state': str(uuid.uuid4()),
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256'
         }
 
         response = await self.session.get(LOGIN_BASE + '/authorize', params=payload)
@@ -103,6 +120,10 @@ class vwid:
         # Fill form with email (username)
         (form, action) = self.form_from_response(await response.read())
         form['email'] = self.username
+        # log form
+        self.log.error("Login form: %s", form)
+        # log action
+        self.log.error("Login action: %s", action)
         response = await self.session.post(LOGIN_HANDLER_BASE+action, data=form)
         if response.status >= 400:
             self.log.error("Email: Non-2xx response")
