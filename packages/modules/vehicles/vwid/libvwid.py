@@ -218,18 +218,22 @@ class vwid:
     async def get_status(self):
         status_url = f"{API_BASE}/v2/vehicle-status/{self.vin}/driving-range"
         response = await self.session.get(status_url, headers=self.headers)
+        self.log.error(f"Response 1: {response}")
 
         # If first attempt fails, try to refresh tokens
         if response.status >= 400:
             self.log.debug("Refreshing tokens")
             if await self.refresh_tokens():
                 response = await self.session.get(status_url, headers=self.headers)
+                self.log.error(f"Response 2: {response}")
 
         # If refreshing tokens failed, try a full reconnect
         if response.status >= 400:
             self.log.info("Reconnecting")
             if await self.reconnect():
                 response = await self.session.get(status_url, headers=self.headers)
+                self.log.error(f"Response 3: {response}")
+
             else:
                 self.log.error("Reconnect failed")
                 return {}
