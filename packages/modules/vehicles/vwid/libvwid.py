@@ -89,11 +89,8 @@ class vwid:
 
     def get_code_challenge(self):
         code_verifier = secrets.token_urlsafe(64).replace('+', '-').replace('/', '_').replace('=', '')
-        code_verifier = 'T3dndUt0dUFmbWZuWTZhSjVabzJLS2R6T1dNTDJGWWdhQ2FlWkx1OFlabTdnY3QzemVCRWdUdHJUWVVOUUdVdg'
         code_challenge = base64.b64encode(hashlib.sha256(code_verifier.encode('utf-8')).digest())
-        self.log.error("Code challenge: %s", code_challenge)
         code_challenge = code_challenge.decode('utf-8').replace('+', '-').replace('/', '_').replace('=', '')
-        self.log.error("Code challenge: %s", code_challenge)
         return (code_verifier, code_challenge)
 
     async def connect(self, username, password):
@@ -180,8 +177,8 @@ class vwid:
         }
         payload = {
             'code': query['code'],
-            'redirect_uri': "myskoda://redirect/login/",
-            'code_verifier': code_verifier
+            'redirectUri': "myskoda://redirect/login/",
+            'verifier': code_verifier
         }
         self.log.error("Payload: %s", payload)
         response = await self.session.post(API_BASE + '/v1/authentication/exchange-authorization-code', params=params, json=payload)
