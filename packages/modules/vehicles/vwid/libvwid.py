@@ -15,7 +15,7 @@ with ImportErrorContext():
 # Constants
 LOGIN_BASE = "https://emea.bff.cariad.digital/user-login/v1"
 LOGIN_HANDLER_BASE = "https://identity.vwgroup.io"
-API_BASE = "https://emea.bff.cariad.digital/vehicle/v1"
+API_BASE = "https://mysmob.api.connect.skoda-auto.cz/api/v2"
 
 
 class vwid:
@@ -135,7 +135,7 @@ class vwid:
         # URL uses the weconnect adapter.
         while (True):
             url = response.headers['Location']
-            if (url.split(':')[0] == "weconnect"):
+            if (url.split(':')[0] == "myskoda"):
                 if not ('access_token' in url):
                     self.log.error("Missing access token")
                     return False
