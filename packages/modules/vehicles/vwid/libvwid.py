@@ -120,10 +120,6 @@ class vwid:
         # Fill form with email (username)
         (form, action) = self.form_from_response(await response.read())
         form['email'] = self.username
-        # log form
-        self.log.error("Login form: %s", form)
-        # log action
-        self.log.error("Login action: %s", action)
         response = await self.session.post(LOGIN_HANDLER_BASE+action, data=form)
         if response.status >= 400:
             self.log.error("Email: Non-2xx response")
@@ -156,6 +152,7 @@ class vwid:
         # URL uses the weconnect adapter.
         while (True):
             url = response.headers['Location']
+            self.log.error("Redirect URL: %s", url)
             if (url.split(':')[0] == "myskoda"):
                 if not ('access_token' in url):
                     self.log.error("Missing access token")
