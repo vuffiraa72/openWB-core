@@ -78,14 +78,16 @@ class api:
             # get status from VW server
             self.data = await self.w.get_status()
             if (self.data):
+                log.debug("get_status() response: \n" +
+                            dumps(self.data, ensure_ascii=False, indent=4))
                 if self.su.keys_exist(self.data, 'userCapabilities', 'capabilitiesStatus', 'error'):
                     log.error("Server Error: \n"
                               + dumps(self.data['userCapabilities']['capabilitiesStatus']['error'],
                                       ensure_ascii=False, indent=4))
 
-                if self.su.keys_exist(self.data, 'charging', 'batteryStatus'):
+                if self.su.keys_exist(self.data, 'primaryEngineRange'):
                     log.debug("batteryStatus: \n" +
-                              dumps(self.data['charging']['batteryStatus'],
+                              dumps(self.data['primaryEngineRange'],
                                     ensure_ascii=False, indent=4))
 
                 try:
