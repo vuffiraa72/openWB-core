@@ -88,7 +88,12 @@ class vwid:
 
     def get_code_challenge(self):
         code_verifier = secrets.token_urlsafe(64).replace('+', '-').replace('/', '_').replace('=', '')
+        code_verifier = 'T3dndUt0dUFmbWZuWTZhSjVabzJLS2R6T1dNTDJGWWdhQ2FlWkx1OFlabTdnY3QzemVCRWdUdHJUWVVOUUdVdg'
         code_challenge = sha256(code_verifier.encode('utf-8')).hexdigest()
+        self.log.error("Code challenge: %s", code_challenge)
+        # encode challenge base64
+        code_challenge = code_challenge.encode('utf-8').replace('+', '-').replace('/', '_').replace('=', '')
+        self.log.error("Code challenge: %s", code_challenge)
         return (code_verifier, code_challenge)
 
     async def connect(self, username, password):
