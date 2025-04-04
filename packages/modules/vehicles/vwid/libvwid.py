@@ -171,17 +171,20 @@ class vwid:
 
         # Get final token
         params = {
-            'token_type': 'CONNECT'
+            'tokenType': 'CONNECT'
         }
         payload = {
             'code': query['code'],
             'redirect_uri': "myskoda://redirect/login/",
             'code_verifier': code_verifier
         }
-        response = await self.session.post(API_BASE + '/v1/authentication/exchange-authorization-code', params=params,json=payload)
+        self.log.error("Payload: %s", payload)
+        response = await self.session.post(API_BASE + '/v1/authentication/exchange-authorization-code', params=params, json=payload)
         if response.status >= 400:
             self.log.error("Login: Non-2xx response")
             # Non 2xx response, failed
+            self.log.error("Response: %s", response)
+            self.log.error("Status: %s", response.status)
             return False
         self.tokens = await response.json()
 
