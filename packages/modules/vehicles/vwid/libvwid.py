@@ -17,7 +17,7 @@ with ImportErrorContext():
 # Constants
 LOGIN_BASE = "https://identity.vwgroup.io/oidc/v1"
 LOGIN_HANDLER_BASE = "https://identity.vwgroup.io"
-API_BASE = "https://mysmob.api.connect.skoda-auto.cz/api/v2"
+API_BASE = "https://mysmob.api.connect.skoda-auto.cz/api"
 CLIENT_ID = "7f045eee-7003-4379-9968-9355ed2adb06@apps_vw-dilab_com"
 
 
@@ -152,10 +152,9 @@ class vwid:
         # URL uses the weconnect adapter.
         while (True):
             url = response.headers['Location']
-            self.log.error("Redirect URL: %s", url)
             if (url.split(':')[0] == "myskoda"):
-                if not ('access_token' in url):
-                    self.log.error("Missing access token")
+                if not ('id_token' in url):
+                    self.log.error("Missing id token")
                     return False
                     # Parse query string
                 query_string = url.split('#')[1]
@@ -171,20 +170,22 @@ class vwid:
         self.headers = dict(response.headers)
 
         # Get final token
-        payload = {
-            'state': query['state'],
-            'id_token': query['id_token'],
-            'redirect_uri': "weconnect://authenticated",
-            'region': "emea",
-            'access_token': query["access_token"],
-            'authorizationCode': query["code"]
+        params = {
+            'token_type': 'CONNECT'
         }
-        response = await self.session.post(LOGIN_BASE + '/login/v1', json=payload)
+        payload = {
+            'code': query['code'],
+            'redirect_uri': "myskoda://redirect/login/",
+            'code_verifier': code_verifier
+        }
+        response = await self.session.post(API_BASE + '/v1/authentication/exchange-authorization-code', params=params,json=payload)
         if response.status >= 400:
             self.log.error("Login: Non-2xx response")
             # Non 2xx response, failed
             return False
         self.tokens = await response.json()
+
+        self.log.error("Tokens: %s", self.tokens)
 
         # Update header with final token
         self.headers['Authorization'] = 'Bearer %s' % self.tokens["accessToken"]
