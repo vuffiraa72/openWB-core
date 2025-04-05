@@ -242,4 +242,6 @@ class vwid:
             self.log.error("Get status failed")
             return {}
 
-        return (await response.json())
+        json = (await response.json())
+        self.log.error(f"Response json: {json}")
+        return json
