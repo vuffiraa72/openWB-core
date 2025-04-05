@@ -202,7 +202,7 @@ class vwid:
         }
         # Use the refresh token
         payload = {
-            'token': self.tokens["accessToken"]
+            'token': self.tokens["refreshToken"]
         }
 
         response = await self.session.get(API_BASE + 'v1/authentication/refresh-token', params=params, json=payload)

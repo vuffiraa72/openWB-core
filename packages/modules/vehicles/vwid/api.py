@@ -78,8 +78,6 @@ class api:
             # get status from VW server
             self.data = await self.w.get_status()
             if (self.data):
-                log.debug("get_status() response: \n" +
-                            dumps(self.data, ensure_ascii=False, indent=4))
                 if self.su.keys_exist(self.data, 'userCapabilities', 'capabilitiesStatus', 'error'):
                     log.error("Server Error: \n"
                               + dumps(self.data['userCapabilities']['capabilitiesStatus']['error'],
