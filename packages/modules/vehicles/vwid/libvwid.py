@@ -208,7 +208,7 @@ class vwid:
 
         self.log.error(f"Refresh payload: {payload}")
 
-        response = await self.session.get(API_BASE + '/v1/authentication/refresh-token', params=params, json=payload)
+        response = await self.session.post(API_BASE + '/v1/authentication/refresh-token', params=params, json=payload)
         self.log.error(f"Refresh response: {response}")
         if response.status >= 400:
             return False
