@@ -205,7 +205,7 @@ class vwid:
             'token': self.tokens["refreshToken"]
         }
 
-        response = await self.session.get(API_BASE + 'v1/authentication/refresh-token', params=params, json=payload)
+        response = await self.session.get(API_BASE + '/v1/authentication/refresh-token', params=params, json=payload)
         if response.status >= 400:
             return False
         self.tokens = await response.json()
