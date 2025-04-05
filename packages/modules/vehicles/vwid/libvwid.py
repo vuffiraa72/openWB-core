@@ -230,7 +230,6 @@ class vwid:
             self.log.info("Reconnecting")
             if await self.reconnect():
                 response = await self.session.get(status_url, headers=self.headers)
-
             else:
                 self.log.error("Reconnect failed")
                 return {}
