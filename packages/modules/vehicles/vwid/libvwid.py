@@ -195,6 +195,7 @@ class vwid:
 
     async def refresh_tokens(self):
         if not self.headers:
+            self.log.error("No headers set")
             return False
 
         params = {
@@ -205,7 +206,10 @@ class vwid:
             'token': self.tokens["refreshToken"]
         }
 
+        self.log.error(f"Refresh payload: {payload}")
+
         response = await self.session.get(API_BASE + '/v1/authentication/refresh-token', params=params, json=payload)
+        self.log.error(f"Refresh response: {response}")
         if response.status >= 400:
             return False
         self.tokens = await response.json()
