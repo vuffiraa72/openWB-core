@@ -7,15 +7,19 @@
 import secrets
 import logging
 import json
+import uuid
+import base64
+import hashlib
 
 from helpermodules.utils.error_handling import ImportErrorContext
 with ImportErrorContext():
     import lxml.html
 
 # Constants
-LOGIN_BASE = "https://emea.bff.cariad.digital/user-login/v1"
+LOGIN_BASE = "https://identity.vwgroup.io/oidc/v1"
 LOGIN_HANDLER_BASE = "https://identity.vwgroup.io"
-API_BASE = "https://emea.bff.cariad.digital/vehicle/v1"
+API_BASE = "https://mysmob.api.connect.skoda-auto.cz/api"
+CLIENT_ID = "7f045eee-7003-4379-9968-9355ed2adb06@apps_vw-dilab_com"
 
 
 class vwid:
@@ -83,15 +87,30 @@ class vwid:
     def set_jobs(self, jobs):
         self.jobs_string = ','.join(jobs)
 
+    def get_code_challenge(self):
+        code_verifier = secrets.token_urlsafe(64).replace('+', '-').replace('/', '_').replace('=', '')
+        code_challenge = base64.b64encode(hashlib.sha256(code_verifier.encode('utf-8')).digest())
+        code_challenge = code_challenge.decode('utf-8').replace('+', '-').replace('/', '_').replace('=', '')
+        return (code_verifier, code_challenge)
+
     async def connect(self, username, password):
         self.set_credentials(username, password)
         return (await self.reconnect())
 
     async def reconnect(self):
+        # Get code challenge and verifier
+        code_verifier, code_challenge = self.get_code_challenge()
+
         # Get authorize page
         payload = {
+            'client_id': CLIENT_ID,
+            'scope': 'address badge birthdate cars driversLicense dealers email mileage mbb nationalIdentifier openid phone profession profile vin',
+            'response_type': 'code id_token',
             'nonce': secrets.token_urlsafe(12),
-            'redirect_uri': 'weconnect://authenticated'
+            'redirect_uri': 'myskoda://redirect/login/',
+            'state': str(uuid.uuid4()),
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256'
         }
 
         response = await self.session.get(LOGIN_BASE + '/authorize', params=payload)
@@ -135,9 +154,9 @@ class vwid:
         # URL uses the weconnect adapter.
         while (True):
             url = response.headers['Location']
-            if (url.split(':')[0] == "weconnect"):
-                if not ('access_token' in url):
-                    self.log.error("Missing access token")
+            if (url.split(':')[0] == "myskoda"):
+                if not ('id_token' in url):
+                    self.log.error("Missing id token")
                     return False
                     # Parse query string
                 query_string = url.split('#')[1]
@@ -153,15 +172,15 @@ class vwid:
         self.headers = dict(response.headers)
 
         # Get final token
-        payload = {
-            'state': query['state'],
-            'id_token': query['id_token'],
-            'redirect_uri': "weconnect://authenticated",
-            'region': "emea",
-            'access_token': query["access_token"],
-            'authorizationCode': query["code"]
+        params = {
+            'tokenType': 'CONNECT'
         }
-        response = await self.session.post(LOGIN_BASE + '/login/v1', json=payload)
+        payload = {
+            'code': query['code'],
+            'redirectUri': "myskoda://redirect/login/",
+            'verifier': code_verifier
+        }
+        response = await self.session.post(API_BASE + '/v1/authentication/exchange-authorization-code', params=params, json=payload)
         if response.status >= 400:
             self.log.error("Login: Non-2xx response")
             # Non 2xx response, failed
@@ -178,10 +197,15 @@ class vwid:
         if not self.headers:
             return False
 
+        params = {
+            'tokenType': 'CONNECT'
+        }
         # Use the refresh token
-        self.headers['Authorization'] = 'Bearer %s' % self.tokens["refreshToken"]
+        payload = {
+            'token': self.tokens["refreshToken"]
+        }
 
-        response = await self.session.get(LOGIN_BASE + '/refresh/v1', headers=self.headers)
+        response = await self.session.post(API_BASE + '/v1/authentication/refresh-token', params=params, json=payload)
         if response.status >= 400:
             return False
         self.tokens = await response.json()
@@ -192,7 +216,7 @@ class vwid:
         return True
 
     async def get_status(self):
-        status_url = f"{API_BASE}/vehicles/{self.vin}/selectivestatus?jobs={self.jobs_string}"
+        status_url = f"{API_BASE}/v2/vehicle-status/{self.vin}/driving-range"
         response = await self.session.get(status_url, headers=self.headers)
 
         # If first attempt fails, try to refresh tokens
