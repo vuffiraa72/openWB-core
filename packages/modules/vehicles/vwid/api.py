@@ -83,16 +83,16 @@ class api:
                               + dumps(self.data['userCapabilities']['capabilitiesStatus']['error'],
                                       ensure_ascii=False, indent=4))
 
-                if self.su.keys_exist(self.data, 'charging', 'batteryStatus'):
+                if self.su.keys_exist(self.data, 'primaryEngineRange'):
                     log.debug("batteryStatus: \n" +
-                              dumps(self.data['charging']['batteryStatus'],
+                              dumps(self.data['primaryEngineRange'],
                                     ensure_ascii=False, indent=4))
 
                 try:
-                    self.soc = int(self.data['charging']['batteryStatus']['value']['currentSOC_pct'])
-                    self.range = float(self.data['charging']['batteryStatus']['value']['cruisingRangeElectric_km'])
-                    soc_tsZ = self.data['charging']['batteryStatus']['value']['carCapturedTimestamp']
-                    soc_tsdtZ = datetime.strptime(soc_tsZ, ts_fmt + "Z")
+                    self.soc = int(self.data['primaryEngineRange']['currentSoCInPercent'])
+                    self.range = float(self.data['primaryEngineRange']['remainingRangeInKm'])
+                    soc_tsZ = self.data['carCapturedTimestamp']
+                    soc_tsdtZ = datetime.strptime(soc_tsZ, ts_fmt + ".%fZ")
                     soc_tsdtL = utc2local(soc_tsdtZ)
                     self.soc_tsX = datetime.timestamp(soc_tsdtL)
                     self.soc_ts = datetime.strftime(soc_tsdtL, ts_fmt)
