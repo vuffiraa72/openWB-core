@@ -12,25 +12,25 @@ from modules.vehicles.skoda.config import Skoda
 class api(VwGroup):
 
     def __init__(self):
-        super().__init__()
+        super(VwGroup, self).__init__()
 
     # async method, called from sync fetch_soc, required because libvwid/libskoda expect async environment
     async def _fetch_soc(self,
                          conf: Skoda,
                          vehicle: int) -> Union[int, float, str]:
-        super.user_id = conf.configuration.user_id
-        super.password = conf.configuration.password
-        super.vin = conf.configuration.vin
-        super.refreshToken = conf.configuration.refreshToken
-        super.replyFile = 'soc_skoda_reply_vh_' + str(vehicle)
-        super.accessTokenFile = str(RAMDISK_PATH) + '/soc_skoda_accessToken_vh_' + str(vehicle)
-        super.accessToken_old = {}
-        super.vehicle = vehicle
-        super.conf = conf
+        self.user_id = conf.configuration.user_id
+        self.password = conf.configuration.password
+        self.vin = conf.configuration.vin
+        self.refreshToken = conf.configuration.refreshToken
+        self.replyFile = 'soc_skoda_reply_vh_' + str(vehicle)
+        self.accessTokenFile = str(RAMDISK_PATH) + '/soc_skoda_accessToken_vh_' + str(vehicle)
+        self.accessToken_old = {}
+        self.vehicle = vehicle
+        self.conf = conf
 
         async with aiohttp.ClientSession() as self.session:
-            super.w = libskoda.Skoda(self.session)
-            return super._request_data(self.session)
+            self.w = libskoda.Skoda(self.session)
+            return super()._request_data(self.session)
 
 
 def fetch_soc(conf: Skoda, vehicle: int) -> Union[int, float, str]:
