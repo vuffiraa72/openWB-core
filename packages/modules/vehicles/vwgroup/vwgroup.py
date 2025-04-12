@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import datetime
+from datetime import datetime
 from json import dumps
 import logging
 from time import mktime, time
@@ -65,8 +65,8 @@ class VwGroup(object):
 
             if self.su.keys_exist(self.data, 'charging', 'batteryStatus'):
                 self.log.debug("batteryStatus: \n" +
-                                dumps(self.data['charging']['batteryStatus'],
-                                        ensure_ascii=False, indent=4))
+                               dumps(self.data['charging']['batteryStatus'],
+                                     ensure_ascii=False, indent=4))
 
             try:
                 self.soc = int(self.data['charging']['batteryStatus']['value']['currentSOC_pct'])
