@@ -30,7 +30,7 @@ class api(VwGroup):
 
         async with aiohttp.ClientSession() as self.session:
             self.w = libskoda.skoda(self.session)
-            return super()._request_data(self.session)
+            return super().request_data(self.session)
 
 
 def fetch_soc(conf: Skoda, vehicle: int) -> Union[int, float, str]:
