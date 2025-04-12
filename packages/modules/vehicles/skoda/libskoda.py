@@ -239,7 +239,7 @@ class skoda:
             return {}
 
         status_data = await response.json()
-        self.log.error(f"Status data from Skoda API: {status_data}")
+        self.log.debug(f"Status data from Skoda API: {status_data}")
 
         return {
             'charging': {
