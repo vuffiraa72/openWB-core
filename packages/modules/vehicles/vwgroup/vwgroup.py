@@ -57,7 +57,6 @@ class VwGroup(object):
 
         # get status from VW server
         self.data = await library.get_status()
-        self.log.debug("get_status response: " + dumps(self.data, ensure_ascii=False, indent=4))
         if (self.data):
             if self.su.keys_exist(self.data, 'userCapabilities', 'capabilitiesStatus', 'error'):
                 self.log.error("Server Error: \n" +
