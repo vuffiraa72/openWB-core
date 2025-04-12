@@ -14,7 +14,7 @@ refreshToken_exp_days = 7    # 7 days before refreshToken expires a new refreshT
 initialToken = '1.2.3'
 
 
-class VwGroup:
+class VwGroup(object):
     def __init__(self):
         self.log = logging.getLogger(__name__)
         self.su = socUtils()

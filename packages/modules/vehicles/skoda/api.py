@@ -12,7 +12,7 @@ from modules.vehicles.skoda.config import Skoda
 class api(VwGroup):
 
     def __init__(self):
-        super(VwGroup, self).__init__()
+        super().__init__()
 
     # async method, called from sync fetch_soc, required because libvwid/libskoda expect async environment
     async def _fetch_soc(self,
