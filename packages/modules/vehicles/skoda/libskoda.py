@@ -19,7 +19,7 @@ API_BASE = "https://mysmob.api.connect.skoda-auto.cz/api"
 CLIENT_ID = "7f045eee-7003-4379-9968-9355ed2adb06@apps_vw-dilab_com"
 
 
-class vwid:
+class skoda:
     def __init__(self, session):
         self.session = session
         self.headers = {}
@@ -71,7 +71,7 @@ class vwid:
             return (form, action)
 
         except KeyError:
-            self.log.exception("Missing fields in response from VW API")
+            self.log.exception("Missing fields in response from Skoda API")
             return False
 
     def set_vin(self, vin):

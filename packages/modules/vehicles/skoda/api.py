@@ -29,7 +29,7 @@ class api(VwGroup):
         self.conf = conf
 
         async with aiohttp.ClientSession() as self.session:
-            self.w = libskoda.Skoda(self.session)
+            self.w = libskoda.skoda(self.session)
             return super()._request_data(self.session)
 
 
