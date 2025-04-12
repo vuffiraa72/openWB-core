@@ -3,7 +3,7 @@
 from logging import getLogger
 from typing import Union
 from modules.vehicles.vwid import libvwid
-from modules.vehicles.vwid import libskoda
+from modules.vehicles.skoda import libskoda
 import aiohttp
 from asyncio import new_event_loop, set_event_loop
 from time import time, mktime
@@ -11,7 +11,7 @@ from datetime import datetime
 from json import dumps
 from modules.common.store import RAMDISK_PATH
 from modules.vehicles.vwid.config import VWId
-from modules.vehicles.vwid.socutils import socUtils
+from modules.vehicles.vwgroup.socutils import socUtils
 
 date_fmt = '%Y-%m-%d %H:%M:%S'
 ts_fmt = '%Y-%m-%dT%H:%M:%S'
