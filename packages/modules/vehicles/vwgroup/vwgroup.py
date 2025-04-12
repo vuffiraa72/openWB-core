@@ -63,33 +63,16 @@ class VwGroup(object):
                                dumps(self.data['userCapabilities']['capabilitiesStatus']['error'],
                                      ensure_ascii=False, indent=4))
 
-            if self.brand == "vwid":
-                if self.su.keys_exist(self.data, 'charging', 'batteryStatus'):
-                    self.log.debug("batteryStatus: \n" +
-                                   dumps(self.data['charging']['batteryStatus'],
-                                         ensure_ascii=False, indent=4))
-            elif self.brand == "skoda":
-                if self.su.keys_exist(self.data, 'primaryEngineRange'):
-                    self.log.debug("batteryStatus: \n" +
-                                   dumps(self.data['primaryEngineRange'],
-                                         ensure_ascii=False, indent=4))
-            else:
-                self.log.error("Brand " + self.brand + " is not one of vwid, skoda")
+            if self.su.keys_exist(self.data, 'charging', 'batteryStatus'):
+                self.log.debug("batteryStatus: \n" +
+                                dumps(self.data['charging']['batteryStatus'],
+                                        ensure_ascii=False, indent=4))
 
             try:
-                if self.brand == "vwid":
-                    self.soc = int(self.data['charging']['batteryStatus']['value']['currentSOC_pct'])
-                    self.range = float(self.data['charging']['batteryStatus']['value']['cruisingRangeElectric_km'])
-                    soc_tsZ = self.data['charging']['batteryStatus']['value']['carCapturedTimestamp']
-                    soc_tsdtZ = datetime.strptime(soc_tsZ, ts_fmt + "Z")
-                elif self.brand == "skoda":
-                    self.soc = int(self.data['primaryEngineRange']['currentSoCInPercent'])
-                    self.range = float(self.data['primaryEngineRange']['remainingRangeInKm'])
-                    soc_tsZ = self.data['carCapturedTimestamp']
-                    soc_tsdtZ = datetime.strptime(soc_tsZ, ts_fmt + ".%fZ")
-                else:
-                    raise "Brand " + self.brand + " is not one of vwid, skoda"
-
+                self.soc = int(self.data['charging']['batteryStatus']['value']['currentSOC_pct'])
+                self.range = float(self.data['charging']['batteryStatus']['value']['cruisingRangeElectric_km'])
+                soc_tsZ = self.data['charging']['batteryStatus']['value']['carCapturedTimestamp']
+                soc_tsdtZ = datetime.strptime(soc_tsZ, ts_fmt + "Z")
                 soc_tsdtL = self.utc2local(soc_tsdtZ)
                 self.soc_tsX = datetime.timestamp(soc_tsdtL)
                 self.soc_ts = datetime.strftime(soc_tsdtL, ts_fmt)

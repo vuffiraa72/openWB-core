@@ -238,4 +238,17 @@ class skoda:
             self.log.error("Get status failed")
             return {}
 
-        return (await response.json())
+        status_data = await response.json()
+        self.log.debug(f"Status data from Skoda API: {status_data}")
+
+        return {
+            'charging': {
+                'batteryStatus': {
+                    'value': {
+                        'currentSOC_pct': status_data['primaryEngineRange']['currentSoCInPercent'],
+                        'cruisingRangeElectric_km': status_data['primaryEngineRange']['remainingRangeInKm'],
+                        'carCapturedTimestamp': status_data['carCapturedTimestamp'].split('.')[0] + 'Z',
+                    }
+                }
+            }
+        }
