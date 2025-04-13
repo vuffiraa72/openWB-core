@@ -10,8 +10,8 @@ from modules.vehicles.vwgroup.vwgroup import VwGroup
 
 class api(VwGroup):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, conf: Skoda, vehicle: int):
+        super().__init__(conf, vehicle)
 
     # async method, called from sync fetch_soc, required because libvwid/libskoda expect async environment
     async def _fetch_soc(self) -> Union[int, float, str]:

@@ -29,7 +29,6 @@ class VwGroup(object):
         self.vehicle = vehicle
         self.conf = conf
 
-
     # convert utc timestamp to local time
     def utc2local(self, utc):
         epoch = mktime(utc.timetuple())
