@@ -5,6 +5,7 @@ from json import dumps
 import logging
 from time import mktime, time
 from typing import Union
+from modules.common.store import RAMDISK_PATH
 from modules.vehicles.vwgroup.socutils import socUtils
 
 date_fmt = '%Y-%m-%d %H:%M:%S'
@@ -15,9 +16,19 @@ initialToken = '1.2.3'
 
 
 class VwGroup(object):
-    def __init__(self):
+    def __init__(self, conf, vehicle):
         self.log = logging.getLogger(__name__)
         self.su = socUtils()
+        self.user_id = conf.configuration.user_id
+        self.password = conf.configuration.password
+        self.vin = conf.configuration.vin
+        self.refreshToken = conf.configuration.refreshToken
+        self.replyFile = 'soc_' + str(conf.type) + '_reply_vh_' + str(vehicle)
+        self.accessTokenFile = str(RAMDISK_PATH) + '/soc_' + str(conf.type) + '_accessToken_vh_' + str(vehicle)
+        self.accessToken_old = {}
+        self.vehicle = vehicle
+        self.conf = conf
+
 
     # convert utc timestamp to local time
     def utc2local(self, utc):

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-from typing import Union
-from modules.vehicles.vwgroup.vwgroup import VwGroup
-from modules.vehicles.skoda import libskoda
 import aiohttp
 from asyncio import new_event_loop, set_event_loop
-from modules.common.store import RAMDISK_PATH
+from typing import Union
+from modules.vehicles.skoda import libskoda
 from modules.vehicles.skoda.config import Skoda
+from modules.vehicles.vwgroup.vwgroup import VwGroup
 
 
 class api(VwGroup):
@@ -15,21 +14,10 @@ class api(VwGroup):
         super().__init__()
 
     # async method, called from sync fetch_soc, required because libvwid/libskoda expect async environment
-    async def _fetch_soc(self,
-                         conf: Skoda,
-                         vehicle: int) -> Union[int, float, str]:
-        self.user_id = conf.configuration.user_id
-        self.password = conf.configuration.password
-        self.vin = conf.configuration.vin
-        self.refreshToken = conf.configuration.refreshToken
-        self.replyFile = 'soc_skoda_reply_vh_' + str(vehicle)
-        self.accessTokenFile = str(RAMDISK_PATH) + '/soc_skoda_accessToken_vh_' + str(vehicle)
-        self.accessToken_old = {}
-        self.vehicle = vehicle
-        self.conf = conf
-
+    async def _fetch_soc(self) -> Union[int, float, str]:
         async with aiohttp.ClientSession() as self.session:
-            return await super().request_data(libskoda.skoda(self.session))
+            skoda = libskoda.skoda(self.session)
+            return await super().request_data(skoda)
 
 
 def fetch_soc(conf: Skoda, vehicle: int) -> Union[int, float, str]:
@@ -39,7 +27,7 @@ def fetch_soc(conf: Skoda, vehicle: int) -> Union[int, float, str]:
     set_event_loop(loop)
 
     # get soc, range from server
-    a = api()
-    soc, range, soc_ts, soc_tsX = loop.run_until_complete(a._fetch_soc(conf, vehicle))
+    a = api(conf, vehicle)
+    soc, range, soc_ts, soc_tsX = loop.run_until_complete(a._fetch_soc())
 
     return soc, range, soc_ts, soc_tsX
