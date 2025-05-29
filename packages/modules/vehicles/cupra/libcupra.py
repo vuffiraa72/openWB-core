@@ -193,7 +193,7 @@ class cupra:
         self.tokens = await response.json()
 
         # Update header with final token
-        self.headers['Authorization'] = 'Bearer %s' % self.tokens["accessToken"]
+        self.headers['Authorization'] = 'Bearer %s' % self.tokens["access_token"]
 
         # Success
         return True
@@ -206,7 +206,7 @@ class cupra:
         form = {}
         form['client_id'] = CLIENT_ID
         form['grant_type'] = 'refresh_token'
-        form['refresh_token'] = self.tokens["refreshToken"]
+        form['refresh_token'] = self.tokens["refresh_token"]
         headers = {}
         headers['Content-Type'] = 'application/x-www-form-urlencoded'
         headers['User-Agent'] = (
@@ -221,7 +221,7 @@ class cupra:
         self.tokens = await response.json()
 
         # Use the newly received access token
-        self.headers['Authorization'] = 'Bearer %s' % self.tokens["accessToken"]
+        self.headers['Authorization'] = 'Bearer %s' % self.tokens["access_token"]
 
         return True
 
