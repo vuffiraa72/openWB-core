@@ -90,6 +90,13 @@ class cupra:
         code_challenge = code_challenge.decode('utf-8').replace('+', '-').replace('/', '_').replace('=', '')
         return (code_verifier, code_challenge)
 
+    def convert_to_camel_case(self, json):
+        def to_camel_case(s):
+            parts = s.split('_')
+            return parts[0] + ''.join(word.capitalize() for word in parts[1:])
+
+        return {to_camel_case(k): v for k, v in json.items()}
+
     async def connect(self, username, password):
         self.set_credentials(username, password)
         return (await self.reconnect())
@@ -190,10 +197,10 @@ class cupra:
             self.log.error("Login: Non-2xx response")
             # Non 2xx response, failed
             return False
-        self.tokens = await response.json()
+        self.tokens = self.convert_to_camel_case(await response.json())
 
         # Update header with final token
-        self.headers['Authorization'] = 'Bearer %s' % self.tokens["access_token"]
+        self.headers['Authorization'] = 'Bearer %s' % self.tokens["accessToken"]
 
         # Success
         return True
@@ -206,7 +213,7 @@ class cupra:
         form = {}
         form['client_id'] = CLIENT_ID
         form['grant_type'] = 'refresh_token'
-        form['refresh_token'] = self.tokens["refresh_token"]
+        form['refresh_token'] = self.tokens["refreshToken"]
         headers = {}
         headers['Content-Type'] = 'application/x-www-form-urlencoded'
         headers['User-Agent'] = (
@@ -218,10 +225,10 @@ class cupra:
                                            headers=headers, data=form)
         if response.status >= 400:
             return False
-        self.tokens = await response.json()
+        self.tokens = self.convert_to_camel_case(await response.json())
 
         # Use the newly received access token
-        self.headers['Authorization'] = 'Bearer %s' % self.tokens["access_token"]
+        self.headers['Authorization'] = 'Bearer %s' % self.tokens["accessToken"]
 
         return True
 
