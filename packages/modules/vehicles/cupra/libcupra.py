@@ -149,15 +149,15 @@ class cupra:
                 return False
 
         # Handle every single redirect and stop if the redirect
-        # URL uses the weconnect adapter.
+        # URL uses the seat adapter.
         while (True):
             url = response.headers['Location']
             if (url.split(':')[0] == "seat"):
-                if not ('id_token' in url):
-                    self.log.error("Missing id token")
+                if not ('code' in url):
+                    self.log.error("Missing authorization code")
                     return False
                     # Parse query string
-                query_string = url.split('#')[1]
+                query_string = url.split('?')[1]
                 query = {x[0]: x[1] for x in [x.split("=") for x in query_string.split("&")]}
                 break
 
