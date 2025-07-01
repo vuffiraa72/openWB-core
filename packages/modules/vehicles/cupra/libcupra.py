@@ -171,6 +171,10 @@ class cupra:
             if (response.status != 302):
                 self.log.error("Not redirected, status %u" % response.status)
                 return False
+            
+            if (url.contains('consent')):
+                self.log.error("Got terms and conditions redirect, but already agreed")
+                return False
 
             response = await self.session.get(url, data=form, allow_redirects=False)
 
