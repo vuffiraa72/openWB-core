@@ -172,13 +172,6 @@ class cupra:
                 self.log.error("Not redirected, status %u" % response.status)
                 return False
 
-            if ('consent' in url):
-                # Get terms and conditions page
-                self.log.warning("Agreed to terms and conditions")
-                self.log.error("Got terms and conditions redirect, follow link to continue")
-                self.log.error("URL: %s", url)
-                return False
-
             response = await self.session.get(url, data=form, allow_redirects=False)
 
         self.headers = dict(response.headers)
@@ -240,7 +233,7 @@ class cupra:
         return True
 
     async def get_status(self):
-        status_url = f"{API_BASE}/v2/vehicles/{self.vin}/status"
+        status_url = f"{API_BASE}/vehicles/{self.vin}/charging/status"
         response = await self.session.get(status_url, headers=self.headers)
 
         # If first attempt fails, try to refresh tokens
@@ -269,9 +262,9 @@ class cupra:
             'charging': {
                 'batteryStatus': {
                     'value': {
-                        'currentSOC_pct': status_data['primaryEngineRange']['currentSoCInPercent'],
-                        'cruisingRangeElectric_km': status_data['primaryEngineRange']['remainingRangeInKm'],
-                        'carCapturedTimestamp': status_data['carCapturedTimestamp'].split('.')[0] + 'Z',
+                        'currentSOC_pct': status_data['status']['battery']['currentSOC_pct'],
+                        'cruisingRangeElectric_km': status_data['status']['battery']['cruisingRangeElectric_km'],
+                        'carCapturedTimestamp': status_data['status']['battery']['carCapturedTimestamp'],
                     }
                 }
             }
