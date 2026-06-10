@@ -4,10 +4,10 @@ import asyncio
 from modules.common import store
 from modules.common.abstract_vehicle import VehicleUpdateData
 from modules.common.component_context import SingleComponentUpdateContext
-from modules.vehicles.cupra import api
 from modules.vehicles.cupra.soc import create_vehicle
 from modules.vehicles.cupra.config import Cupra, CupraConfiguration
 from modules.vehicles.cupra.libcupra import cupra as CupraApi, CLIENT_ID, USER_AGENT
+from modules.vehicles.vwgroup import libeuda
 import base64
 
 
@@ -17,10 +17,10 @@ class TestCupra:
         self.mock_context_exit = Mock(return_value=True)
         self.mock_fetch_soc = Mock(
             name="fetch_soc",
-            return_value=(60, 320, "2026-03-29T11:00:00Z", 1774782000.0, 45678),
+            return_value=(60, 320, 1774782000, "2026-03-29T11:00:00Z", 45678),
         )
         self.mock_value_store = Mock(name="value_store")
-        monkeypatch.setattr(api, "fetch_soc", self.mock_fetch_soc)
+        monkeypatch.setattr(libeuda, "fetch_soc", self.mock_fetch_soc)
         monkeypatch.setattr(store, "get_car_value_store", Mock(return_value=self.mock_value_store))
         monkeypatch.setattr(SingleComponentUpdateContext, '__exit__', self.mock_context_exit)
 
@@ -29,11 +29,12 @@ class TestCupra:
         config = Cupra(configuration=CupraConfiguration(user_id="test_user", password="test_password", vin="test_vin"))
 
         # execution
-        create_vehicle(config, 1).update(VehicleUpdateData())
+        vehicle_update_data = VehicleUpdateData()
+        create_vehicle(config, 1).update(vehicle_update_data)
 
         # evaluation
         self.assert_context_manager_called_with(None)
-        self.mock_fetch_soc.assert_called_once_with(config, 1)
+        self.mock_fetch_soc.assert_called_once_with(config, 1, vehicle_update_data)
         assert self.mock_value_store.set.call_count == 1
         call_args = self.mock_value_store.set.call_args[0][0]
         assert call_args.soc == 60
