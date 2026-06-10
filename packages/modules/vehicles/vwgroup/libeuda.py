@@ -129,6 +129,7 @@ NO_CONTENT_SUFFIX = "_no_content_found.zip"
 
 POLL_INTERVAL = 60    # polling interval in seconds
 CYCLE_INTERVAL = 600  # cycle interval in seconds
+INITIAL_RESULT_WAIT = 30  # seconds to wait for the first background result
 EUDA_THREADNAME = "soc_bt_ev"
 UTC = None
 KEEP_JSON = 30
@@ -633,6 +634,33 @@ def get_field_value_by_key(D: dict, key: str) -> str:
     return ret
 
 
+def _to_int(value, default: int = 0) -> int:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_float(value, default: float = 0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _timestamp_to_epoch(timestamp: str) -> int:
+    if not timestamp or timestamp == "-":
+        return 0
+    try:
+        return int(float(timestamp) / 1000) if str(timestamp).isdigit() and len(str(timestamp)) > 10 else int(float(timestamp))
+    except (TypeError, ValueError):
+        pass
+    try:
+        return int(datetime.fromisoformat(str(timestamp).replace("Z", "+00:00")).timestamp())
+    except (TypeError, ValueError):
+        return 0
+
+
 CAR_TIMESTAMP = "car_captured_time"
 
 
@@ -647,6 +675,39 @@ def get_max_value_by_fieldname(D: dict, field: str) -> str:
                 if v > ret:
                     ret = v
     return ret
+
+
+def parse_vehicle_data(payload: dict) -> dict:
+    """Extract normalized SoC fields from an EUDA JSON payload."""
+    data = payload.get('Data', [])
+    soc = get_field_value_by_key(data, 'f89ed652-d104-3fa6-b7e2-ab7543309e7b')
+    if soc is None:
+        soc = get_field_value_by_key(data, '506cb83e-f99f-3af3-bbeb-0429b69a78d9')
+    if soc is None:
+        soc = get_field_value_by_key(data, 'ac1108b1-b8cc-3db9-a663-03d387e42223')
+
+    range_km = get_field_value_by_key(data, '153e8c40-4c6c-3c17-a11b-0ecc35d55b81')
+    if range_km is None:
+        range_km = get_field_value_by_key(data, '0ca40e18-0564-3eda-bcc0-7aee9ef44f04')
+
+    odometer = get_field_value_by_key(data, '30cc36fd-71ca-3c09-9296-e94ebd47bd2b')
+    if odometer is None:
+        odometer = get_field_value_by_key(data, '75d65f00-5fa8-334a-826d-e73e91fe5c8d')
+
+    soc_timestamp = get_field_value_by_key(data, '7b76a2c8-162c-3438-814b-0768f6cc6649')
+    car_timestamp = get_field_value_by_key(data, '2496cd73-8a68-318c-a159-200ecfd0e47d')
+    max_timestamp = get_max_value_by_fieldname(data, CAR_TIMESTAMP)
+    captured_timestamp = max_timestamp if max_timestamp != "-" else car_timestamp
+    timestamp_epoch = _timestamp_to_epoch(captured_timestamp) or _timestamp_to_epoch(soc_timestamp)
+
+    return {
+        'soc': str(_to_int(soc)),
+        'range': None if range_km is None else str(_to_float(range_km)),
+        'soc_timestamp': str(timestamp_epoch),
+        'max_timestamp': captured_timestamp if captured_timestamp and captured_timestamp != "-" else "1970-01-01T00:00:00Z",
+        'car_timestamp': car_timestamp,
+        'odometer': str(_to_float(odometer)),
+    }
 
 
 class euda():
@@ -698,6 +759,30 @@ class euda():
 
         return status
 
+    def update_result_from_payload(self, payload: dict, source: str) -> dict:
+        """Parse an EUDA payload and publish it in the in-memory result cache."""
+        vin = payload['vin']
+        result = parse_vehicle_data(payload)
+        euda.result[vin] = result
+        _LOGGER.info(f"parsed EUDA result from {source}:\n{json.dumps({vin: result}, indent=4)}")
+        return result
+
+    def load_latest_json_result(self, vin: str) -> bool:
+        """Load and parse the newest already downloaded EUDA JSON for a VIN."""
+        files = glob.glob(str(JSON_BASE_PATH) + '/*_' + vin + '.json')
+        files.sort()
+        if not files:
+            return False
+        latest = files[-1]
+        try:
+            with open(latest) as f:
+                payload = json.load(f)
+            self.update_result_from_payload(payload, latest)
+            return True
+        except Exception as err:
+            _LOGGER.exception(f"failed to load latest EUDA JSON {latest}: {err}")
+            return False
+
     # eudaThread
     async def async_eudaThread(self, username: str, password: str, vin: str):
         brand = get_brand_for_vin(vin)
@@ -712,23 +797,24 @@ class euda():
                     euda.client[client_key] = EudaApiClient(session, username, password, brand)
                     _k = str(euda.client.keys())
                     _LOGGER.info(f"libeuda.Thread client: euda.client.keys={_k}")
-                    meta = None
-                    while meta is None:
-                        try:
-                            meta = await euda.client[client_key].async_get_metadata(vin)
-                        except ApiError as err:
-                            if "HTTP 500" in str(err):
-                                _LOGGER.info(f"Portal not ready/get_metadata, wait {POLL_INTERVAL} seconds")
-                            else:
-                                _LOGGER.info(f"APIError/get_metadata: {err}")
-                            meta = None
-                        except Exception as err:
-                            _LOGGER.info(f"Exception/get_metadata: {err}")
-                            meta = None
-                        if meta is None:
-                            time.sleep(POLL_INTERVAL)
 
-                    identifier = meta.get("Identifier")
+                meta = None
+                while meta is None:
+                    try:
+                        meta = await euda.client[client_key].async_get_metadata(vin)
+                    except ApiError as err:
+                        if "HTTP 500" in str(err):
+                            _LOGGER.info(f"Portal not ready/get_metadata, wait {POLL_INTERVAL} seconds")
+                        else:
+                            _LOGGER.info(f"APIError/get_metadata: {err}")
+                        meta = None
+                    except Exception as err:
+                        _LOGGER.info(f"Exception/get_metadata: {err}")
+                        meta = None
+                    if meta is None:
+                        time.sleep(POLL_INTERVAL)
+
+                identifier = meta.get("Identifier")
 
                 # thread main loop
                 while True:
@@ -751,31 +837,8 @@ class euda():
                                 time.sleep(POLL_INTERVAL)
 
                         vin = _data['vin']
-                        status = self.save_json_file(_name, vin, _data)
-
-                        if status:
-                            _Data = _data['Data']
-                            soc = get_field_value_by_key(_Data, 'f89ed652-d104-3fa6-b7e2-ab7543309e7b')
-                            if soc is None:
-                                soc = get_field_value_by_key(_Data, '506cb83e-f99f-3af3-bbeb-0429b69a78d9')
-                            if soc is None:
-                                soc = get_field_value_by_key(_Data, 'ac1108b1-b8cc-3db9-a663-03d387e42223')
-                            range = get_field_value_by_key(_Data, '153e8c40-4c6c-3c17-a11b-0ecc35d55b81')
-                            if range is None:
-                                range = get_field_value_by_key(_Data, '0ca40e18-0564-3eda-bcc0-7aee9ef44f04')
-                            odometer = get_field_value_by_key(_Data, '30cc36fd-71ca-3c09-9296-e94ebd47bd2b')
-                            soc_timestamp = get_field_value_by_key(_Data, '7b76a2c8-162c-3438-814b-0768f6cc6649')
-                            car_timestamp = get_field_value_by_key(_Data, '2496cd73-8a68-318c-a159-200ecfd0e47d')
-                            max_timestamp = get_max_value_by_fieldname(_Data, CAR_TIMESTAMP)
-
-                            euda.result[vin] = {}
-                            euda.result[vin]['soc'] = soc
-                            euda.result[vin]['range'] = range
-                            euda.result[vin]['soc_timestamp'] = soc_timestamp
-                            euda.result[vin]['max_timestamp'] = max_timestamp
-                            euda.result[vin]['car_timestamp'] = car_timestamp
-                            euda.result[vin]['odometer'] = odometer
-                            _LOGGER.info(f"thread result:\n{json.dumps(euda.result, indent=4)}")
+                        self.save_json_file(_name, vin, _data)
+                        self.update_result_from_payload(_data, _name)
                         _LOGGER.info(f"sleep {CYCLE_INTERVAL} seconds")
                         time.sleep(CYCLE_INTERVAL)
 
@@ -824,19 +887,28 @@ class euda():
                 data['soc_timestamp'] = str(0)
                 data['odometer'] = str(0)
 
-            euda.thread[self.username] = {}
-            euda.thread[self.username]['name'] = EUDA_THREADNAME + str(self.vehicle)
-            euda.thread[self.username]['thread'] = None
+            thread_key = f"{self.username}:{self.vin}"
+            euda.thread[thread_key] = {}
+            euda.thread[thread_key]['name'] = EUDA_THREADNAME + str(self.vehicle)
+            euda.thread[thread_key]['thread'] = None
             for t in threading.enumerate():
-                if t.name == euda.thread[self.username]['name']:
+                if t.name == euda.thread[thread_key]['name']:
                     _LOGGER.debug(f"thread {t.name} exists already")
-                    euda.thread[self.username]['thread'] = t
-            if euda.thread[self.username]['thread'] is None:
-                _LOGGER.debug(f"{euda.thread[self.username]['name']} not found: starting now")
-                euda.thread[self.username]['thread'] = threading.Thread(target=self.eudaThread,
-                                                                        name=euda.thread[self.username]['name'],
-                                                                        args=(self.username, self.password, self.vin))
-                euda.thread[self.username]['thread'].start()
+                    euda.thread[thread_key]['thread'] = t
+            if euda.thread[thread_key]['thread'] is None:
+                _LOGGER.debug(f"{euda.thread[thread_key]['name']} not found: starting now")
+                euda.thread[thread_key]['thread'] = threading.Thread(target=self.eudaThread,
+                                                                     name=euda.thread[thread_key]['name'],
+                                                                     args=(self.username, self.password, self.vin))
+                euda.thread[thread_key]['thread'].start()
+
+            if self.vin not in euda.result:
+                self.load_latest_json_result(self.vin)
+
+            wait_until = time.time() + INITIAL_RESULT_WAIT
+            while self.vin not in euda.result and time.time() < wait_until:
+                _LOGGER.info(f"wait for first EUDA result for VIN {self.vin}")
+                time.sleep(1)
 
             if self.vin in euda.result:
                 _LOGGER.debug(f"vehicle match: {self.vin}")
@@ -881,8 +953,10 @@ class euda():
                         json.dump(data, f, indent=4)
 
             else:
-                _LOGGER.error(f"SOCERR-02: Für VIN {self.vin} wurden (noch) keine Daten gefunden")
-                # raise Exception(f"SOCERR-02: Für VIN {self.vin} wurden (noch) keine Daten gefunden")
+                if _to_int(data.get('currentSOC_pct')) > 0:
+                    _LOGGER.info(f"use cached data from {self.storeFile} for VIN {self.vin}")
+                else:
+                    raise Exception(f"SOCERR-02: Für VIN {self.vin} wurden (noch) keine Daten gefunden")
 
             _LOGGER.info(f"return data:\n{json.dumps(data, indent=4)}")
             soc = data['currentSOC_pct']
