@@ -956,14 +956,14 @@ class euda():
                     _LOGGER.warning(f"no range delivered, calculate range = {range}km")
 
                 ts = euda.result[self.vin]['soc_timestamp']
-                tsxx = euda.result[self.vin]['soc_timestamp_str']
+                ts_str = euda.result[self.vin]['soc_timestamp_str']
                 odometer = euda.result[self.vin]['odometer']
 
                 _LOGGER.debug(f"vin             = {self.vin}")
                 _LOGGER.debug(f"soc             = {soc}")
                 _LOGGER.debug(f"range           = {range}")
                 _LOGGER.debug(f"soc_timestamp   = {ts}")
-                _LOGGER.debug(f"soc_timestamp_str = {tsxx}")
+                _LOGGER.debug(f"soc_timestamp_str = {ts_str}")
                 _LOGGER.debug(f"odometer        = {odometer}")
 
                 data_modified = False
@@ -976,8 +976,8 @@ class euda():
                 if ts and str(ts) != data['soc_timestamp']:
                     data['soc_timestamp'] = str(ts)
                     data_modified = True
-                if tsxx and str(tsxx) != data['carCapturedTimestamp']:
-                    data['carCapturedTimestamp'] = str(tsxx)
+                if ts_str and str(ts_str) != data['carCapturedTimestamp']:
+                    data['carCapturedTimestamp'] = str(ts_str)
                     data_modified = True
                 if odometer and str(odometer) != data['odometer']:
                     data['odometer'] = str(odometer)
@@ -996,10 +996,10 @@ class euda():
             _LOGGER.info(f"return data:\n{json.dumps(data, indent=4)}")
             soc = data['currentSOC_pct']
             range = data['cruisingRangeElectric_km']
-            tsxx = data['carCapturedTimestamp']
             ts = data['soc_timestamp']
+            ts_str = data['carCapturedTimestamp']
             odometer = data['odometer']
-            _LOGGER.info(f"get_status: soc={soc}, range={range}, ts={ts}, tsxx={tsxx}, odometer={odometer}")
+            _LOGGER.info(f"get_status: soc={soc}, range={range}, ts={ts}, ts_str={ts_str}, odometer={odometer}")
 
             # for test only:
             # set soc_timestamp to 0 to avoid computed state being later than this reported state
@@ -1008,7 +1008,7 @@ class euda():
             # _LOGGER.info(f"get_status: publish soc_timestamp as 0: topic: {topic}, message: {ep0}")
             # Pub().pub(topic, ep0)
 
-            return float(soc), float(range), float(ts), tsxx, float(odometer)
+            return float(soc), float(range), float(ts), ts_str, float(odometer)
         except Exception as e:
             _LOGGER.exception(f"get_status failed 0, exception={e}")
             # if exception is a SOCERR reraise it, otherwise raise general SOCERR-00
